@@ -1,0 +1,9 @@
+model:
+  arch: swin3d_t
+  pretrained: vsltranslation/swin3d_t_v2.0
+inference:
+  source: webcam
+  output_dir: demo/webcam
+  use_onnx: True
+  show_skeleton: True
+  visualize: True

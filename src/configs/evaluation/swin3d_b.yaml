@@ -1,0 +1,14 @@
+data:
+  dataset: vsl_98
+  modality: rgb
+  # subset: cam_1
+  data_dir: vsltranslation/vsl_98
+  transform:
+    sample_rate: 2
+  fps: 30
+  debug: False
+evaluation:
+  arch: swin3d_b
+  pretrained: vsltranslation/test_swin3d_b
+  eval_set: test
+  push_to_hub: True

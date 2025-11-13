@@ -1,0 +1,38 @@
+data:
+  dataset: vsl_400
+  modality: pose
+  subset: cam_1
+  data_dir: data/processed/vsl_400
+  transform:
+    aug_prob: 0.5
+    rotation_std: 0.2
+    shear_std: 0.2
+    scale_std: 0.2
+  fps: 30
+  debug: False
+model:
+  arch: sl_gcn
+  pretrained: models/sl_gcn/bone_epoch_239_9470.pt
+  num_frozen_layers: 0
+  ignored_weights: []
+  num_frames: 150
+  num_points: 27
+  groups: 16
+  block_size: 41
+  in_channels: 3
+  labeling_mode: spatial
+  window_size: 100
+  is_vector: False
+  bone_stream: True
+  motion_stream: False
+training:
+  run_name: sl_gcn_bone_v2.0
+  learning_rate: 0.01
+  weight_decay: 0.0001
+  num_train_epochs: 200
+  per_device_train_batch_size: 64
+  per_device_eval_batch_size: 64
+  metric_for_best_model: accuracy
+  # report_to: wandb
+  push_to_hub: True
+  hub_model_id: vsltranslation    # Only enter organization/account name

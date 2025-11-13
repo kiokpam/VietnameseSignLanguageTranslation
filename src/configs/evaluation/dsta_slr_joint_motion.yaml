@@ -1,0 +1,16 @@
+data:
+  dataset: vsl_98
+  modality: pose
+  # subset: cam_1
+  data_dir: vsltranslation/vsl_98
+  transform:
+    normalization: True
+    bone_stream: False
+    motion_stream: True
+  fps: 30
+  debug: False
+evaluation:
+  arch: dsta_slr
+  pretrained: vsltranslation/test_dsta_slr_joint_motion
+  eval_set: validation
+  push_to_hub: True
