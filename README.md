@@ -99,8 +99,6 @@ python src/inference.py --config_path src/configs/inference/config.yaml
 
 There are also helpers for model conversion and evaluation:
 
-- `src/convert_model_to_onnx.py` — export a trained model to ONNX.
-- `src/convert_model_to_torchscript.py` — export to TorchScript.
 - `src/evaluate_model.py` — run evaluation metrics on predictions.
 - `src/extract_keypoints.py` — utilities to extract pose/keypoint features from videos.
 
