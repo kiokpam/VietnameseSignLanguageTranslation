@@ -29,6 +29,7 @@ def log_video_info(input_video):
     logger.info("Video resolution: {}.".format(resolution))
     logger.info('FPS: {}.'.format(fps))
     logger.info('Number of frame: {}.'.format(num_frame))
+
 def normalize_video(input_file, output_file, resolution='1920:1080', fps=30):
     # Open the video file
     cap = cv2.VideoCapture(str(input_file))
@@ -114,6 +115,10 @@ def save_to_csv(output_file, data):
     logger.info('Saved cut time file at {}'.format(output_file))
 
 def process_getting_cut_time(input_video, cut_time_file, process_all, from_second, to_second, threshold, delay, min_up_frame, min_down_frame, visualize):
+    """
+    Temporal Boundary Localization (TBL) - Detects candidate temporal boundaries
+    for sign language gestures based on arm angles and hand visibility.
+    """
     # Load video
     cap = cv2.VideoCapture(str(input_video))
     
@@ -162,7 +167,7 @@ def process_getting_cut_time(input_video, cut_time_file, process_all, from_secon
     
     cap.set(cv2.CAP_PROP_POS_FRAMES, from_frame)
 
-    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, smooth_landmarks=True) as pose: # with smooth_landmarks=True, get 25 points of upper body instead of 33 points for the whole body
+    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, smooth_landmarks=True) as pose:
         while cap.isOpened():
             success, image = cap.read()
             if not success:
@@ -193,14 +198,13 @@ def process_getting_cut_time(input_video, cut_time_file, process_all, from_secon
             right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].visibility]
             right_elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y,    landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].visibility]
             right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y,   landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].visibility]
-            # print(left_wrist)
+            
             # Calculate angles
             left_angle = calculate_angle(left_shoulder, left_elbow, left_wrist)
             right_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
             
             # Check if left hand up or down
             if left_angle < threshold and left_wrist[2]>visibility_threshold and left_status == 'down':
-                # print('checked')
                 if left_up_frame == 0:
                     left_start_time_temp = cap.get(cv2.CAP_PROP_POS_MSEC) - delay
                     left_up_frame += 1       
@@ -211,9 +215,8 @@ def process_getting_cut_time(input_video, cut_time_file, process_all, from_secon
                     left_start_time_temp = 0
                 else:
                     left_up_frame += 1 
-            # Check if angle is greater than threshold or the wrist is not visible
+            
             if ((left_angle > threshold and left_wrist[2]>visibility_threshold) or left_wrist[2]<visibility_threshold) and left_status == 'down':
-                # print('checked')
                 left_up_frame = 0
                 left_start_time_temp = 0
             
@@ -228,6 +231,7 @@ def process_getting_cut_time(input_video, cut_time_file, process_all, from_secon
                     left_end_time_temp = 0
                 else:
                     left_down_frame += 1 
+            
             if left_angle < threshold and left_wrist[2]>visibility_threshold and left_status == 'up':
                 left_down_frame = 0
                 left_end_time_temp = 0   
@@ -244,6 +248,7 @@ def process_getting_cut_time(input_video, cut_time_file, process_all, from_secon
                     right_start_time_temp = 0
                 else:
                     right_up_frame += 1 
+            
             if ((right_angle > threshold and right_wrist[2]>visibility_threshold) or right_wrist[2]<visibility_threshold) and right_status == 'down':
                 right_up_frame = 0
                 right_start_time_temp = 0
@@ -259,11 +264,11 @@ def process_getting_cut_time(input_video, cut_time_file, process_all, from_secon
                     right_end_time_temp = 0
                 else:
                     right_down_frame += 1 
+            
             if right_angle < threshold and right_wrist[2]>visibility_threshold and right_status == 'up':
                 right_down_frame = 0
                 right_end_time_temp = 0
                 
-            # print(left_start_time, left_end_time, left_status, right_start_time, right_end_time, right_status)
             # Calculate the start and end time of sign
             start_time, end_time = get_start_end_time(left_start_time, left_end_time, left_status, right_start_time, right_end_time, right_status)
             if start_time !=0 and end_time != 0:
@@ -331,7 +336,7 @@ def process_visualization(input_video, process_all, from_second, to_second):
     
     cap.set(cv2.CAP_PROP_POS_FRAMES, from_frame)
     
-    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, smooth_landmarks=True) as pose: # with smooth_landmarks=True, get 25 points of upper body instead of 33 points for the whole body
+    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, smooth_landmarks=True) as pose:
         while cap.isOpened():
             success, image = cap.read()
             if not success:
@@ -382,65 +387,6 @@ def process_visualization(input_video, process_all, from_second, to_second):
                 break
     cap.release()
     cv2.destroyAllWindows()
-    
-def cut_crop_video(video_path, output_path, start_time, end_time, crop_dimensions):
-    w, h, x, y = map(int,crop_dimensions.split(':'))
-    cap = cv2.VideoCapture(str(video_path))
-    
-    # Lấy frame rate của video
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    
-    # Tính vị trí frame bắt đầu và kết thúc
-    start_frame = int(start_time * fps)
-    end_frame = int(end_time * fps)
-    
-    # Thiết lập vị trí bắt đầu đọc video
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    
-    # Tạo đối tượng VideoWriter để ghi video
-    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-    
-    # Đọc và ghi frame từ start_frame đến end_frame
-    current_frame = start_frame
-    while current_frame <= end_frame:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        # Cắt frame theo vị trí chỉ định
-        cropped_frame = frame[y:y+h, x:x+w]
-
-        out.write(cropped_frame)
-        current_frame += 1
-    
-    # Giải phóng tài nguyên
-    cap.release()
-    out.release()
-    print("Video has been cut successfully.")
-    
-def process_cutting_cropping_video(input_video, cut_time_file, output_dir, process_all, from_index, to_index, crop_dimensions, overwrite):
-    data = pd.read_csv(cut_time_file)
-    logger.info("Loaded cut time from {}.".format(cut_time_file))
-
-    # Choose the process range
-    if process_all:
-        process_range = range(len(data))
-        logger.info("Will process all data, {} samples.".format(len(data)))
-    else:
-        if from_index == None:
-            from_index = 0
-        if to_index == None:
-            to_index = len(data)
-        process_range = range(from_index, to_index)
-        logger.info("Will process data from index {} to index {}.".format(from_index, to_index))
-
-    for i in process_range:
-        output_path = Path(output_dir, "{}.mp4".format(i))
-        if output_path.exists() and not overwrite:
-            logger.info('{} | Video already exists at {}.'.format(i, output_path))
-        else:
-            logger.info('{} | start time: {}, end time: {}.'.format(i, data['start_time'][i], data['end_time'][i]))
-            cut_crop_video(input_video, str(output_path), data['start_time'][i], data['end_time'][i], crop_dimensions)
-            logger.info('Saved video at {}.'.format(output_path))
 
 def main():
     # Get arguments
@@ -450,7 +396,7 @@ def main():
     # Config logger
     config_logger(args.log_file)
     
-    logger.info("------------------------- RUNNING NEW PROCESS -------------------------")
+    logger.info("------------------------- RUNNING TBL PROCESS -------------------------")
     
     input_video = Path(args.input_video)
       
@@ -487,7 +433,7 @@ def main():
         cut_time_file = Path(args.cut_time_file)
     
     if args.get_cut_time:
-        logger.info('--GETTING CUT TIME FILE')
+        logger.info('--GETTING CUT TIME FILE (TBL)')
         # Check output path
         if cut_time_file.exists() and not args.overwrite:
             logger.error('Cut time file already exists.')
@@ -497,24 +443,8 @@ def main():
             process_getting_cut_time(input_video, cut_time_file, args.process_all, args.from_second, args.to_second, args.threshold, args.delay, args.min_up_frame, args.min_down_frame, args.visualize)
             
     if not args.get_cut_time and args.visualize:
-        logger.info('--VISUZLIZATION')
+        logger.info('--VISUALIZATION')
         process_visualization(input_video, args.process_all, args.from_second, args.to_second)
         
-    if args.cut_crop_video:
-        logger.info('--CUTTING AND CROPPING VIDEO')
-        # Check input data
-        if not cut_time_file.exists():
-            logger.error("Not found {}.".format(cut_time_file))
-        else:
-            # Check output dir
-            if args.output_dir is None:
-                output_dir = input_video.parent / input_video.stem
-            else:
-                output_dir = Path(args.output_dir)
-            if not output_dir.exists():
-                output_dir.mkdir(parents=True)
-            logger.info("Save processed videos at {}.".format(output_dir))
-            process_cutting_cropping_video(input_video, cut_time_file, output_dir, args.process_all, args.from_index, args.to_index, args.crop_dimensions, args.overwrite)
-        
 if __name__ == "__main__":
-	main()
+    main()

@@ -68,6 +68,18 @@ pip install -r requirements.txt
 
 If you use `wandb` or private Hugging Face models/datasets, log into those services before running training/inference.
 
+## Data Processing
+Step 1: Detect gesture boundaries (TBL)
+
+```powershell
+python src/data/temporal_boundary_localization.py --input_video video.mp4 --get_cut_time
+```
+Step 2: Segment and crop videos (BGSP)
+
+```powershell 
+python src/data/boundary_segmentation_pruning.py --input_video video.mp4 --cut_crop_video
+```
+Output: Individual segmented videos saved in ./video/ directory
 ## Configuration
 
 Configs live in `src/configs/` separated by training/inference subfolders. Typical fields to update:
