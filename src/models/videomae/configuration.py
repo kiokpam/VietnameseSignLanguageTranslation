@@ -1,15 +1,15 @@
 from transformers import PretrainedConfig
+from transformers import VideoMAEConfig as HFVideoMAEConfig
 
 
-class Swin3DConfig(PretrainedConfig):
-    model_type = "swin3d"
+class VideoMAEConfig(PretrainedConfig):
+    model_type = "videomae"
 
     def __init__(
         self,
-        arch: str = "swin3d_t",
-        pretrained: str = "DEFAULT",
+        arch: str = "videomae",
+        pretrained: str = "MCG-NJU/videomae-small-finetuned-kinetics",
         num_frozen_layers: int = 0,
-        num_frames: int = 16,
         id2label: dict = None,
         label2id: dict = None,
         **kwargs,
@@ -18,6 +18,9 @@ class Swin3DConfig(PretrainedConfig):
         self.arch = arch
         self.pretrained = pretrained
         self.num_frozen_layers = num_frozen_layers
-        self.num_frames = num_frames
+
+        config = HFVideoMAEConfig.from_pretrained(pretrained)
+        self.num_frames = config.num_frames
+
         self.id2label = id2label
         self.label2id = label2id
