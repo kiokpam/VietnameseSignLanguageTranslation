@@ -1,5 +1,5 @@
 
-# Vietnamese Sign Language Translation
+# Vietnamese Sign Language Translation - VSL400
 
 This repository implements models and tools for translating Vietnamese Sign Language (VSL) using video and pose/keypoint data.
 
